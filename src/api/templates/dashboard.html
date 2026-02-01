@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Energy Forecast Dashboard</title>
+    <style>
+        body {
+            background: #0d0d0d;
+            font-family: Arial, Helvetica, sans-serif;
+            text-align: center;
+            color: white;
+        }
+
+        h1 {
+            margin-top: 40px;
+            font-size: 42px;
+        }
+
+        .buttons {
+            margin: 30px 0;
+        }
+
+        button {
+            padding: 14px 28px;
+            margin: 10px;
+            font-size: 18px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .res { background: #1abc9c; }
+        .com { background: #3498db; }
+        .ind { background: #e67e22; }
+
+        .card {
+            margin: 40px auto;
+            padding: 30px;
+            width: 500px;
+            border-radius: 12px;
+            background: #1a1a1a;
+            box-shadow: 0 0 20px rgba(0,255,255,0.2);
+            display: none;
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        .loading {
+            font-size: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .value {
+            font-size: 28px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Energy Forecast Dashboard</h1>
+
+<div class="buttons">
+    <button class="res" onclick="getForecast('residential')">Residential</button>
+    <button class="com" onclick="getForecast('commercial')">Commercial</button>
+    <button class="ind" onclick="getForecast('industrial')">Industrial</button>
+</div>
+
+<div class="loading" id="loading">Fetching prediction...</div>
+
+<div class="card" id="card">
+    <h2 id="sectorTitle"></h2>
+    <div class="value" id="result"></div>
+</div>
+
+<script>
+async function getForecast(sector) {
+    document.getElementById("card").style.display = "none";
+    document.getElementById("loading").style.display = "block";
+
+    const response = await fetch(`/forecast/${sector}`);
+    const data = await response.json();
+
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("card").style.display = "block";
+
+    document.getElementById("sectorTitle").innerText =
+        sector.toUpperCase() + " Sector";
+
+    document.getElementById("result").innerText =
+        "Next Hour Prediction: " + data.next_hour_forecast.toFixed(3) + " kWh";
+}
+</script>
+
+</body>
+</html>
