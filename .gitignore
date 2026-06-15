@@ -3,5 +3,5 @@ __pycache__/
 *.pyc
 .env
 models/checkpoints/
-data/
-models/
+/data/
+/models/

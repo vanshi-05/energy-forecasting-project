@@ -5,12 +5,12 @@ def preprocess_residential(input_path, output_path):
         input_path,
         sep=';',
         parse_dates={'datetime': ['Date', 'Time']},
-        infer_datetime_format=True,
         low_memory=False
     )
 
     df = df[['datetime', 'Global_active_power']]
     df['Global_active_power'] = pd.to_numeric(df['Global_active_power'], errors='coerce')
+    df['datetime'] = pd.to_datetime(df['datetime'], format='%d/%m/%Y %H:%M:%S')
 
     df.set_index('datetime', inplace=True)
 

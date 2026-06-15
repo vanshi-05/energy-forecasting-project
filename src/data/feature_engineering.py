@@ -1,53 +1,81 @@
 import pandas as pd
+import numpy as np
 
-
-def add_features(input_path, output_path, time_col, target_col):
+def add_features(input_path, weather_path, output_path, time_col, target_col):
     df = pd.read_csv(input_path)
 
-    # Standardize datetime
+    # Standardize datetime index
     df[time_col] = pd.to_datetime(df[time_col])
-    df.set_index(time_col, inplace=True)
+    df.rename(columns={time_col: 'datetime'}, inplace=True)
+    df.set_index('datetime', inplace=True)
+
+    # Load and merge weather data
+    if weather_path:
+        weather_df = pd.read_csv(weather_path)
+        weather_df['timestamp'] = pd.to_datetime(weather_df['timestamp'])
+        weather_df.rename(columns={'timestamp': 'datetime'}, inplace=True)
+        weather_df.set_index('datetime', inplace=True)
+        
+        # Merge weather parameters
+        df = df.join(weather_df[['air_temperature', 'wind_speed', 'cloud_coverage']], how='left')
 
     # Lag features
     df['lag_1'] = df[target_col].shift(1)
+    df['lag_2'] = df[target_col].shift(2)
     df['lag_24'] = df[target_col].shift(24)
 
-    # Rolling mean
+    # Rolling statistics
     df['rolling_mean_24'] = df[target_col].rolling(24).mean()
+    df['rolling_std_24'] = df[target_col].rolling(24).std()
 
     # Time features
     df['hour'] = df.index.hour
     df['dayofweek'] = df.index.dayofweek
     df['month'] = df.index.month
+    df['is_weekend'] = (df['dayofweek'] >= 5).astype(int)
 
+    # Cyclical encoding of time features
+    df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / 24.0)
+    df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / 24.0)
+    df['dayofweek_sin'] = np.sin(2 * np.pi * df['dayofweek'] / 7.0)
+    df['dayofweek_cos'] = np.cos(2 * np.pi * df['dayofweek'] / 7.0)
+    df['month_sin'] = np.sin(2 * np.pi * df['month'] / 12.0)
+    df['month_cos'] = np.cos(2 * np.pi * df['month'] / 12.0)
+
+    # Drop missing values due to lag/rolling calculations
     df.dropna(inplace=True)
-    df.to_csv(output_path)
+    df.reset_index(inplace=True)
+    df.to_csv(output_path, index=False)
 
-    print(f"Features added for {output_path}")
-
+    print(f"Enhanced features added for {output_path} (Shape: {df.shape})")
 
 if __name__ == "__main__":
+    weather_path = "data/raw/weather_commercial.csv"
 
     # Residential
     add_features(
-        "data/processed/residential_hourly.csv",
-        "data/processed/final_residential.csv",
+        input_path="data/processed/residential_hourly.csv",
+        weather_path=weather_path,
+        output_path="data/processed/final_residential.csv",
         time_col="datetime",
         target_col="Global_active_power"
     )
 
     # Commercial
+    # For commercial, weather is already merged in preprocessing, but let's run it through
     add_features(
-        "data/processed/commercial_hourly.csv",
-        "data/processed/final_commercial.csv",
+        input_path="data/processed/commercial_hourly.csv",
+        weather_path=None, # Already merged
+        output_path="data/processed/final_commercial.csv",
         time_col="timestamp",
         target_col="meter_reading"
     )
 
     # Industrial
     add_features(
-        "data/processed/industrial_hourly.csv",
-        "data/processed/final_industrial.csv",
+        input_path="data/processed/industrial_hourly.csv",
+        weather_path=weather_path,
+        output_path="data/processed/final_industrial.csv",
         time_col="datetime",
         target_col="National Hourly Demand"
     )

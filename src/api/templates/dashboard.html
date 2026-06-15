@@ -1,106 +1,630 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Energy Forecast Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Grid AI Forecasting Dashboard</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root {
+            --bg-color: #08080f;
+            --panel-bg: rgba(13, 13, 25, 0.65);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --primary-glow: rgba(26, 188, 156, 0.4);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            
+            /* Sector Colors */
+            --color-res: #1abc9c;
+            --color-com: #3498db;
+            --color-ind: #e67e22;
+            --color-lstm: #e74c3c;
+            --color-xgb: #f1c40f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background: #0d0d0d;
-            font-family: Arial, Helvetica, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(26, 188, 156, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(52, 152, 219, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            font-family: 'Outfit', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
             text-align: center;
-            color: white;
+            margin-bottom: 40px;
         }
 
-        h1 {
-            margin-top: 40px;
-            font-size: 42px;
+        header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #1abc9c 0%, #3498db 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
         }
 
-        .buttons {
-            margin: 30px 0;
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 300;
         }
 
-        button {
-            padding: 14px 28px;
-            margin: 10px;
-            font-size: 18px;
-            border-radius: 8px;
-            border: none;
+        /* Sector Navigation */
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 12px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 50px;
             cursor: pointer;
-            transition: 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
         }
 
-        button:hover {
-            transform: scale(1.05);
+        .nav-btn:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            color: var(--text-main);
+            transform: translateY(-2px);
         }
 
-        .res { background: #1abc9c; }
-        .com { background: #3498db; }
-        .ind { background: #e67e22; }
+        .nav-btn.active[data-sector="residential"] {
+            background: rgba(26, 188, 156, 0.2);
+            border-color: var(--color-res);
+            color: #1abc9c;
+            box-shadow: 0 0 15px rgba(26, 188, 156, 0.3);
+        }
 
-        .card {
-            margin: 40px auto;
+        .nav-btn.active[data-sector="commercial"] {
+            background: rgba(52, 152, 219, 0.2);
+            border-color: var(--color-com);
+            color: #3498db;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .nav-btn.active[data-sector="industrial"] {
+            background: rgba(230, 126, 34, 0.2);
+            border-color: var(--color-ind);
+            color: #e67e22;
+            box-shadow: 0 0 15px rgba(230, 126, 34, 0.3);
+        }
+
+        /* Glass Panel Styling */
+        .glass-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            backdrop-filter: blur(15px);
             padding: 30px;
-            width: 500px;
-            border-radius: 12px;
-            background: #1a1a1a;
-            box-shadow: 0 0 20px rgba(0,255,255,0.2);
-            display: none;
-            animation: fadeIn 0.6s ease-in-out;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: transform 0.3s ease;
         }
 
-        .loading {
-            font-size: 20px;
-            margin-top: 20px;
+        /* Grid Layout */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Chart Header */
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-header h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 420px;
+            width: 100%;
+        }
+
+        /* Metrics Deck */
+        .metrics-deck {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 15px 20px;
+            text-align: center;
+        }
+
+        .metric-card h4 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .metric-card .val {
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .metric-card.hybrid .val { color: var(--color-res); }
+        .metric-card.xgb .val { color: var(--color-xgb); }
+        .metric-card.lstm .val { color: var(--color-lstm); }
+
+        /* Interactive Telemetry Card */
+        .telemetry-deck {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .telemetry-header h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .telemetry-header p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .input-group label span {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .input-range {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+            accent-color: #3498db;
+        }
+
+        .btn-predict {
+            width: 100%;
+            background: linear-gradient(135deg, #1abc9c 0%, #3498db 100%);
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(26, 188, 156, 0.2);
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26, 188, 156, 0.4);
+        }
+
+        /* Next Hour Results */
+        .results-panel {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
             display: none;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .results-panel h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 8px;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .result-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-row .model-name {
+            color: var(--text-muted);
+        }
+
+        .result-row .model-val {
+            font-weight: 600;
+        }
+
+        .result-row.best .model-name {
+            color: var(--color-res);
+            font-weight: 600;
+        }
+        
+        .result-row.best .model-val {
+            color: var(--color-res);
+            font-size: 1.1rem;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        .value {
-            font-size: 28px;
-            margin-top: 15px;
+        
+        .unit-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-left: 2px;
         }
     </style>
 </head>
-
 <body>
 
-<h1>Energy Forecast Dashboard</h1>
+<div class="container">
+    <header>
+        <h1>Smart Grid AI Forecasting Center</h1>
+        <p>Multi-Sector Hybrid Deep Learning Time-Series Forecasting Application</p>
+    </header>
 
-<div class="buttons">
-    <button class="res" onclick="getForecast('residential')">Residential</button>
-    <button class="com" onclick="getForecast('commercial')">Commercial</button>
-    <button class="ind" onclick="getForecast('industrial')">Industrial</button>
-</div>
+    <div class="navigation">
+        <button class="nav-btn active" data-sector="residential" onclick="setSector('residential')">Residential Sector</button>
+        <button class="nav-btn" data-sector="commercial" onclick="setSector('commercial')">Commercial Sector</button>
+        <button class="nav-btn" data-sector="industrial" onclick="setSector('industrial')">Industrial Sector</button>
+    </div>
 
-<div class="loading" id="loading">Fetching prediction...</div>
+    <!-- Error Metrics Panel -->
+    <div class="glass-panel">
+        <div class="chart-header" style="margin-bottom: 15px;">
+            <h2 id="metricsTitle">Residential Sector Performance Metrics</h2>
+        </div>
+        <div class="metrics-deck">
+            <div class="metric-card hybrid">
+                <h4>Hybrid Model MAE</h4>
+                <div class="val" id="metric-hybrid-mae">-</div>
+            </div>
+            <div class="metric-card xgb">
+                <h4>XGBoost MAE</h4>
+                <div class="val" id="metric-xgb-mae">-</div>
+            </div>
+            <div class="metric-card lstm">
+                <h4>LSTM MAE</h4>
+                <div class="val" id="metric-lstm-mae">-</div>
+            </div>
+            <div class="metric-card">
+                <h4>Baseline MAE</h4>
+                <div class="val" id="metric-base-mae">-</div>
+            </div>
+        </div>
+    </div>
 
-<div class="card" id="card">
-    <h2 id="sectorTitle"></h2>
-    <div class="value" id="result"></div>
+    <!-- Grid Layout for Chart & Controls -->
+    <div class="grid-layout">
+        <!-- Chart Panel -->
+        <div class="glass-panel">
+            <div class="chart-header">
+                <h2 id="chartTitle">Energy Load Forecasting vs Baselines</h2>
+                <div style="font-size: 0.9rem; color: var(--text-muted);" id="sectorUnit">Unit: kW</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="forecastChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Telemetry Deck -->
+        <div class="glass-panel">
+            <div class="telemetry-deck">
+                <div class="telemetry-header">
+                    <h3>Simulation Control Deck</h3>
+                    <p>Override real-time smart grid weather variables to test forecasting flexibility.</p>
+                </div>
+                
+                <div class="input-group">
+                    <label>Air Temperature (°C) <span id="val-temp">24.0</span></label>
+                    <input type="range" class="input-range" id="input-temp" min="-5" max="45" value="24" step="0.5" oninput="updateLabel('temp', this.value)">
+                </div>
+
+                <div class="input-group">
+                    <label>Wind Speed (m/s) <span id="val-wind">3.5</span></label>
+                    <input type="range" class="input-range" id="input-wind" min="0" max="15" value="3.5" step="0.1" oninput="updateLabel('wind', this.value)">
+                </div>
+
+                <div class="input-group">
+                    <label>Cloud Coverage (0-8 Oktas) <span id="val-cloud">4</span></label>
+                    <input type="range" class="input-range" id="input-cloud" min="0" max="8" value="4" step="1" oninput="updateLabel('cloud', this.value)">
+                </div>
+
+                <button class="btn-predict" onclick="triggerInteractiveForecast()">Apply Grid Overrides</button>
+
+                <!-- Interactive Results Output -->
+                <div class="results-panel" id="resultsPanel">
+                    <h4 id="resultsTitle">Next Hour Prediction Results</h4>
+                    <div class="result-row best">
+                        <span class="model-name">Hybrid Model (Proposed)</span>
+                        <span class="model-val" id="res-hybrid">-</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="model-name">XGBoost Model</span>
+                        <span class="model-val" id="res-xgb">-</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="model-name">LSTM Baseline</span>
+                        <span class="model-val" id="res-lstm">-</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="model-name">Seasonal Baseline</span>
+                        <span class="model-val" id="res-baseline">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-async function getForecast(sector) {
-    document.getElementById("card").style.display = "none";
-    document.getElementById("loading").style.display = "block";
+    let activeSector = 'residential';
+    let chartInstance = null;
+    let globalMetrics = {};
 
-    const response = await fetch(`/forecast/${sector}`);
-    const data = await response.json();
+    function updateLabel(id, val) {
+        document.getElementById(`val-${id}`).innerText = val;
+    }
 
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("card").style.display = "block";
+    async function loadMetrics() {
+        try {
+            const res = await fetch('/api/metrics');
+            globalMetrics = await res.json();
+            displayMetrics();
+        } catch (err) {
+            console.error("Failed to load global metrics", err);
+        }
+    }
 
-    document.getElementById("sectorTitle").innerText =
-        sector.toUpperCase() + " Sector";
+    function displayMetrics() {
+        const sectorMetrics = globalMetrics[activeSector];
+        if (!sectorMetrics) return;
+        
+        document.getElementById('metricsTitle').innerText = `${activeSector.toUpperCase()} Sector Performance Comparison`;
+        document.getElementById('metric-hybrid-mae').innerText = sectorMetrics.Hybrid_Model.MAE;
+        document.getElementById('metric-xgb-mae').innerText = sectorMetrics.XGBoost.MAE;
+        document.getElementById('metric-lstm-mae').innerText = sectorMetrics.LSTM.MAE;
+        document.getElementById('metric-base-mae').innerText = sectorMetrics.Seasonal_Baseline.MAE;
+    }
 
-    document.getElementById("result").innerText =
-        "Next Hour Prediction: " + data.next_hour_forecast.toFixed(3) + " kWh";
-}
+    async function fetchForecastData() {
+        try {
+            const res = await fetch(`/api/forecast-data/${activeSector}`);
+            const data = await res.json();
+            renderChart(data);
+        } catch (err) {
+            console.error("Failed to fetch forecast data", err);
+        }
+    }
+
+    function renderChart(data) {
+        const ctx = document.getElementById('forecastChart').getContext('2d');
+        
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+        
+        // Setup HSL colors
+        let mainColor = '#1abc9c';
+        let unitText = 'kW';
+        if (activeSector === 'commercial') {
+            mainColor = '#3498db';
+            unitText = 'kWh';
+        } else if (activeSector === 'industrial') {
+            mainColor = '#e67e22';
+            unitText = 'MW';
+        }
+        document.getElementById('sectorUnit').innerText = `Unit: ${unitText}`;
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.timestamps.map(t => t.split(' ')[1].substring(0, 5)), // hourly labels
+                datasets: [
+                    {
+                        label: 'Actual load',
+                        data: data.actuals,
+                        borderColor: '#ffffff',
+                        borderWidth: 2.5,
+                        pointRadius: 0,
+                        tension: 0.1,
+                        alpha: 0.9
+                    },
+                    {
+                        label: 'Seasonal Baseline',
+                        data: data.seasonal,
+                        borderColor: '#95a5a6',
+                        borderWidth: 1.5,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'LSTM Baseline',
+                        data: data.lstm,
+                        borderColor: '#e74c3c',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'XGBoost',
+                        data: data.xgb,
+                        borderColor: '#f1c40f',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Proposed Hybrid Model',
+                        data: data.hybrid,
+                        borderColor: mainColor,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        tension: 0.1,
+                        shadowColor: mainColor,
+                        shadowBlur: 10
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#9ca3af',
+                            font: { family: 'Outfit', size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(10, 10, 20, 0.9)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#d1d5db',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.03)' },
+                        ticks: { color: '#9ca3af', font: { family: 'Outfit' }, maxTicksLimit: 12 }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.03)' },
+                        ticks: { color: '#9ca3af', font: { family: 'Outfit' } }
+                    }
+                }
+            }
+        });
+    }
+
+    async function triggerInteractiveForecast() {
+        const temp = parseFloat(document.getElementById('input-temp').value);
+        const wind = parseFloat(document.getElementById('input-wind').value);
+        const cloud = parseFloat(document.getElementById('input-cloud').value);
+
+        const body = {
+            sector: activeSector,
+            air_temperature: temp,
+            wind_speed: wind,
+            cloud_coverage: cloud
+        };
+
+        try {
+            const res = await fetch('/api/predict-interactive', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            displayInteractiveResults(data);
+        } catch (err) {
+            console.error("Failed to run interactive forecast", err);
+        }
+    }
+
+    function displayInteractiveResults(data) {
+        let unitText = activeSector === 'residential' ? 'kW' : activeSector === 'commercial' ? 'kWh' : 'MW';
+        
+        document.getElementById('res-hybrid').innerText = `${data.hybrid_prediction.toFixed(2)} ${unitText}`;
+        document.getElementById('res-xgb').innerText = `${data.xgb_prediction.toFixed(2)} ${unitText}`;
+        document.getElementById('res-lstm').innerText = `${data.lstm_prediction.toFixed(2)} ${unitText}`;
+        document.getElementById('res-baseline').innerText = `${data.baseline_prediction.toFixed(2)} ${unitText}`;
+        
+        document.getElementById('resultsPanel').style.display = 'block';
+    }
+
+    function setSector(sector) {
+        activeSector = sector;
+        
+        // Update active class in UI buttons
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`.nav-btn[data-sector="${sector}"]`).classList.add('active');
+        
+        // Reset interactive results
+        document.getElementById('resultsPanel').style.display = 'none';
+        
+        // Reload dashboard components
+        displayMetrics();
+        fetchForecastData();
+    }
+
+    // Initialize Dashboard
+    window.addEventListener('DOMContentLoaded', () => {
+        loadMetrics();
+        fetchForecastData();
+    });
 </script>
-
 </body>
 </html>
