@@ -1,0 +1,22 @@
+{
+    "Seasonal_Baseline": {
+        "MAE": 0.4991,
+        "RMSE": 0.6677,
+        "MAPE": 87.3348
+    },
+    "XGBoost": {
+        "MAE": 0.3144,
+        "RMSE": 0.4515,
+        "MAPE": 42.1093
+    },
+    "LSTM": {
+        "MAE": 0.3538,
+        "RMSE": 0.5095,
+        "MAPE": 47.8887
+    },
+    "Hybrid_Model": {
+        "MAE": 0.3698,
+        "RMSE": 0.5019,
+        "MAPE": 56.6663
+    }
+}

@@ -1,0 +1,68 @@
+{
+    "residential": {
+        "Seasonal_Baseline": {
+            "MAE": 0.4991,
+            "RMSE": 0.6677,
+            "MAPE": 87.3348
+        },
+        "XGBoost": {
+            "MAE": 0.3144,
+            "RMSE": 0.4515,
+            "MAPE": 42.1093
+        },
+        "LSTM": {
+            "MAE": 0.3538,
+            "RMSE": 0.5095,
+            "MAPE": 47.8887
+        },
+        "Hybrid_Model": {
+            "MAE": 0.3698,
+            "RMSE": 0.5019,
+            "MAPE": 56.6663
+        }
+    },
+    "commercial": {
+        "Seasonal_Baseline": {
+            "MAE": 16.0236,
+            "RMSE": 19.2782,
+            "MAPE": 18.2458
+        },
+        "XGBoost": {
+            "MAE": 3.7748,
+            "RMSE": 5.5217,
+            "MAPE": 4.077
+        },
+        "LSTM": {
+            "MAE": 5.9455,
+            "RMSE": 8.4016,
+            "MAPE": 6.7508
+        },
+        "Hybrid_Model": {
+            "MAE": 5.0942,
+            "RMSE": 7.2003,
+            "MAPE": 5.6957
+        }
+    },
+    "industrial": {
+        "Seasonal_Baseline": {
+            "MAE": 1536.6288,
+            "RMSE": 1990.8473,
+            "MAPE": 9.7659
+        },
+        "XGBoost": {
+            "MAE": 135.7851,
+            "RMSE": 180.8175,
+            "MAPE": 0.9004
+        },
+        "LSTM": {
+            "MAE": 210.1944,
+            "RMSE": 281.9168,
+            "MAPE": 1.4068
+        },
+        "Hybrid_Model": {
+            "MAE": 245.0532,
+            "RMSE": 315.5531,
+            "MAPE": 1.6009
+        }
+    }
+}
