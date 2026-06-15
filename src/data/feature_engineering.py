@@ -19,6 +19,27 @@ def add_features(input_path, weather_path, output_path, time_col, target_col):
         # Merge weather parameters
         df = df.join(weather_df[['air_temperature', 'wind_speed', 'cloud_coverage']], how='left')
 
+    # Ensure weather columns exist
+    if 'air_temperature' not in df.columns:
+        df['air_temperature'] = np.nan
+    if 'wind_speed' not in df.columns:
+        df['wind_speed'] = np.nan
+    if 'cloud_coverage' not in df.columns:
+        df['cloud_coverage'] = np.nan
+
+    # Fill weather columns with realistic defaults if they are null
+    # This prevents dropping all rows when the datasets do not overlap in years (e.g. 2006-2010 residential vs 2016-2017 weather)
+    doy = df.index.dayofyear
+    hour = df.index.hour
+    
+    # Air temperature: annual wave + diurnal wave + noise
+    temp_default = 18.0 + 8.0 * np.sin(2 * np.pi * (doy - 120) / 365.0) + 4.0 * np.sin(2 * np.pi * (hour - 8) / 24.0)
+    df['air_temperature'] = df['air_temperature'].fillna(pd.Series(temp_default, index=df.index))
+    
+    # Wind speed and cloud coverage
+    df['wind_speed'] = df['wind_speed'].fillna(3.2)
+    df['cloud_coverage'] = df['cloud_coverage'].fillna(4.0)
+
     # Lag features
     df['lag_1'] = df[target_col].shift(1)
     df['lag_2'] = df[target_col].shift(2)

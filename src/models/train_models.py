@@ -52,6 +52,10 @@ def train_sector_models(csv_path, target_col, sector_name):
     df['datetime'] = pd.to_datetime(df['datetime'])
     df.set_index('datetime', inplace=True)
     
+    # Slice to last 25,000 rows to accelerate training and align timescales
+    if len(df) > 25000:
+        df = df.iloc[-25000:].copy()
+    
     # 80/20 Train/Test Split
     split_idx = int(len(df) * 0.8)
     train_df = df.iloc[:split_idx]

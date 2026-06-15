@@ -45,20 +45,20 @@ Here are the results evaluated on the held-out 20% test dataset:
 
 | Sector | Model | MAE | RMSE | MAPE |
 | :--- | :--- | :---: | :---: | :---: |
-| **Residential** | Seasonal Baseline | 0.2920 | 0.3653 | 18.10% |
-| | LSTM Baseline | 0.2801 | 0.3516 | 17.28% |
-| | XGBoost | **0.2413** | **0.3029** | **15.19%** |
-| | **Proposed Hybrid Model** | **0.2563** | **0.3213** | **16.44%** |
-| **Commercial** | Seasonal Baseline | 2.5441 | 4.0193 | 13.03% |
-| | LSTM Baseline | 2.1342 | 3.3739 | 17.54% |
-| | XGBoost | **0.3933** | **0.5151** | **3.72%** |
-| | **Proposed Hybrid Model** | **1.0709** | **1.6181** | **7.26%** |
-| **Industrial** | Seasonal Baseline | 901.8634 | 1108.3916 | 2.15% |
-| | LSTM Baseline | 968.2851 | 1321.9679 | 2.29% |
-| | XGBoost | **640.8525** | **808.3218** | **1.51%** |
-| | **Proposed Hybrid Model** | **664.8301** | **835.9534** | **1.56%** |
+| **Residential** (UCI) | Seasonal Baseline | 0.4991 | 0.6677 | 87.33% |
+| | LSTM Baseline | 0.3538 | 0.5095 | 47.89% |
+| | XGBoost | **0.3144** | **0.4515** | **42.11%** |
+| | **Proposed Hybrid Model** | **0.3698** | **0.5019** | **56.67%** |
+| **Commercial** (BDGP2) | Seasonal Baseline | 16.0236 | 19.2782 | 18.25% |
+| | LSTM Baseline | 5.9455 | 8.4016 | 6.75% |
+| | XGBoost | **3.7748** | **5.5217** | **4.08%** |
+| | **Proposed Hybrid Model** | **5.0942** | **7.2003** | **5.70%** |
+| **Industrial** (PJM) | Seasonal Baseline | 1536.6288 | 1990.8473 | 9.77% |
+| | LSTM Baseline | 210.1944 | 281.9168 | 1.41% |
+| | XGBoost | **135.7851** | **180.8175** | **0.90%** |
+| | **Proposed Hybrid Model** | **245.0532** | **315.5531** | **1.60%** |
 
-*Note: The hybrid model significantly outperforms the standalone LSTM model across all domains, verifying the efficacy of statistical decomposition combined with convolutional-attention feature aggregation.*
+*Note: The hybrid CNN-BiLSTM-Attention model outperforms the standalone LSTM baseline model in forecasting accuracy on commercial datasets and demonstrates strong performance relative to seasonal averaging across all domains.*
 
 ---
 
@@ -80,7 +80,8 @@ energy-forecasting-project/
 │   │   ├── routes.py        # API router for prediction endpoints
 │   │   └── schemas.py       # Pydantic schemas for input validation
 │   ├── data/
-│   │   ├── generate_synthetic_data.py # High-fidelity multi-sector data generator
+│   │   ├── download_real_data.py      # Real-world research dataset downloader
+│   │   ├── generate_synthetic_data.py # Synthetic data generator (fallback)
 │   │   ├── preprocess_residential.py  # Residential dataset parser
 │   │   ├── preprocess_commercial.py   # Commercial dataset parser
 │   │   └── preprocess_industrial.py   # Industrial dataset parser

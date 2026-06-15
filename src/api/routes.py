@@ -83,6 +83,10 @@ def get_forecast_data(sector: str):
     df['datetime'] = pd.to_datetime(df['datetime'])
     df.set_index('datetime', inplace=True)
     
+    # Slice to match training size
+    if len(df) > 25000:
+        df = df.iloc[-25000:].copy()
+    
     # Extract test dataframe (take last 150 hours to display)
     test_df = df.iloc[split_idx:].copy()
     show_hours = 150
@@ -164,6 +168,10 @@ def predict_interactive(req: ForecastOverrideRequest):
     df = pd.read_csv(csv_path)
     df['datetime'] = pd.to_datetime(df['datetime'])
     df.set_index('datetime', inplace=True)
+    
+    # Slice to match training size
+    if len(df) > 25000:
+        df = df.iloc[-25000:].copy()
     
     recent_df = df.iloc[-24:].copy()
     

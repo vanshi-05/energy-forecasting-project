@@ -17,7 +17,7 @@ def main():
     parser = argparse.ArgumentParser(description="Multi-Sector Energy Consumption Forecasting Project CLI Manager")
     parser.add_argument(
         "action",
-        choices=["generate", "preprocess", "features", "train", "evaluate", "serve", "pipeline"],
+        choices=["download", "generate", "preprocess", "features", "train", "evaluate", "serve", "pipeline"],
         help="Action to perform. 'pipeline' runs everything end-to-end and starts the server."
     )
     
@@ -26,7 +26,10 @@ def main():
     # Ensure correct python executable
     python_exec = sys.executable
     
-    if args.action == "generate":
+    if args.action == "download":
+        run_command(f'"{python_exec}" src/data/download_real_data.py', "Real Data Ingestion")
+        
+    elif args.action == "generate":
         run_command(f'"{python_exec}" src/data/generate_synthetic_data.py', "Raw Data Generation")
         
     elif args.action == "preprocess":
@@ -48,7 +51,7 @@ def main():
         
     elif args.action == "pipeline":
         print("\nRunning complete pipeline end-to-end...")
-        run_command(f'"{python_exec}" src/data/generate_synthetic_data.py', "1. Raw Data Generation")
+        run_command(f'"{python_exec}" src/data/download_real_data.py', "1. Real Data Ingestion")
         run_command(f'"{python_exec}" src/data/preprocess_residential.py', "2. Residential Preprocessing")
         run_command(f'"{python_exec}" src/data/preprocess_commercial.py', "2. Commercial Preprocessing")
         run_command(f'"{python_exec}" src/data/preprocess_industrial.py', "2. Industrial Preprocessing")

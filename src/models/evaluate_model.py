@@ -38,6 +38,10 @@ def evaluate_sector(csv_path, sector_name):
     df['datetime'] = pd.to_datetime(df['datetime'])
     df.set_index('datetime', inplace=True)
     
+    # Slice to match training size
+    if len(df) > 25000:
+        df = df.iloc[-25000:].copy()
+        
     # Extract test dataframe
     test_df = df.iloc[split_idx:].copy()
     test_dates = test_df.index[24:]
