@@ -3,12 +3,17 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-from src.api.routes import router
+from src.api.routes import router, preload_all_assets
 
 app = FastAPI(title="Energy Forecasting API")
 
+@app.on_event("startup")
+def startup_event():
+    preload_all_assets()
+
 # Include API routes
 app.include_router(router)
+
 
 # Serve dashboard
 BASE_DIR = Path(__file__).resolve().parent

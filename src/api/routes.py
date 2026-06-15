@@ -14,6 +14,7 @@ router = APIRouter()
 
 # Global Cache for Models & Metadata
 MODELS_CACHE = {}
+METRICS_CACHE = None
 
 def load_sector_assets(sector: str):
     if sector in MODELS_CACHE:
@@ -45,22 +46,37 @@ def load_sector_assets(sector: str):
     xgb_model = XGBRegressor()
     xgb_model.load_model(xgb_path)
     
+    # Load and parse CSV dataframe
+    csv_path = f"data/processed/final_{sector}.csv"
+    df = pd.read_csv(csv_path)
+    df['datetime'] = pd.to_datetime(df['datetime'])
+    df.set_index('datetime', inplace=True)
+    
+    # Slice to match training size
+    if len(df) > 25000:
+        df = df.iloc[-25000:].copy()
+        
     assets = {
         "meta": meta,
         "lstm": lstm_model,
         "hybrid": hybrid_model,
-        "xgb": xgb_model
+        "xgb": xgb_model,
+        "df": df
     }
     MODELS_CACHE[sector] = assets
     return assets
 
 @router.get("/api/metrics")
 def get_metrics():
+    global METRICS_CACHE
+    if METRICS_CACHE is not None:
+        return METRICS_CACHE
     metrics_path = "models/results/global_metrics.json"
     if not os.path.exists(metrics_path):
         raise HTTPException(status_code=404, detail="Global metrics not found. Run model evaluation first.")
     with open(metrics_path, "r") as f:
-        return json.load(f)
+        METRICS_CACHE = json.load(f)
+    return METRICS_CACHE
 
 @router.get("/api/forecast-data/{sector}")
 def get_forecast_data(sector: str):
@@ -77,15 +93,7 @@ def get_forecast_data(sector: str):
     weather_scaler = meta["weather_scaler"]
     seasonal_baseline = meta["seasonal_baseline"]
     
-    # Load dataframe
-    csv_path = f"data/processed/final_{sector}.csv"
-    df = pd.read_csv(csv_path)
-    df['datetime'] = pd.to_datetime(df['datetime'])
-    df.set_index('datetime', inplace=True)
-    
-    # Slice to match training size
-    if len(df) > 25000:
-        df = df.iloc[-25000:].copy()
+    df = assets["df"]
     
     # Extract test dataframe (take last 150 hours to display)
     test_df = df.iloc[split_idx:].copy()
@@ -163,15 +171,7 @@ def predict_interactive(req: ForecastOverrideRequest):
     weather_scaler = meta["weather_scaler"]
     seasonal_baseline = meta["seasonal_baseline"]
     
-    # Load last 24 hours of dataset to use as lag history
-    csv_path = f"data/processed/final_{sector}.csv"
-    df = pd.read_csv(csv_path)
-    df['datetime'] = pd.to_datetime(df['datetime'])
-    df.set_index('datetime', inplace=True)
-    
-    # Slice to match training size
-    if len(df) > 25000:
-        df = df.iloc[-25000:].copy()
+    df = assets["df"]
     
     recent_df = df.iloc[-24:].copy()
     
@@ -254,3 +254,20 @@ def predict_interactive(req: ForecastOverrideRequest):
         lstm_prediction=round(pred_lstm, 3),
         hybrid_prediction=round(pred_hybrid, 3)
     )
+
+def preload_all_assets():
+    global METRICS_CACHE
+    # Preload global metrics
+    metrics_path = "models/results/global_metrics.json"
+    if os.path.exists(metrics_path):
+        with open(metrics_path, "r") as f:
+            METRICS_CACHE = json.load(f)
+    
+    # Preload sector assets (models, metadata, dataframes)
+    for sector in ["residential", "commercial", "industrial"]:
+        try:
+            load_sector_assets(sector)
+            print(f"Preloaded assets for sector '{sector}' successfully.")
+        except Exception as e:
+            print(f"Failed to preload assets for sector '{sector}': {e}")
+
